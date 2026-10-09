@@ -29,6 +29,7 @@ namespace = "Waffle\\Commons\\OpenApi"
 permit = [
     "Waffle\\Commons\\OpenApi\\**",
     "Waffle\\Commons\\Contracts\\**",
+    "Waffle\\Commons\\Utils\\**",
     "@layer:core",
     "@layer:psr",
 ]

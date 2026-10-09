@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "0e18dffa58e1715d154d1c782ce0d008",
+    "content-hash": "34b89b9f563f3258efa525a8ed324491",
     "packages": [
         {
             "name": "psr/cache",
@@ -534,6 +534,56 @@
                 "source": "https://github.com/waffle-commons/contracts/tree/main"
             },
             "time": "2026-09-08T18:04:59+00:00"
+        },
+        {
+            "name": "waffle-commons/utils",
+            "version": "dev-main",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/waffle-commons/utils.git",
+                "reference": "5a7199fc5835ee83fc0e9cb7c073a13a098ab9b1"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/waffle-commons/utils/zipball/5a7199fc5835ee83fc0e9cb7c073a13a098ab9b1",
+                "reference": "5a7199fc5835ee83fc0e9cb7c073a13a098ab9b1",
+                "shasum": ""
+            },
+            "require": {
+                "php": "^8.5",
+                "waffle-commons/contracts": "self.version"
+            },
+            "require-dev": {
+                "carthage-software/mago": "^1.29",
+                "cyclonedx/cyclonedx-php-composer": "^6.2",
+                "igor-php/igor-php": "^0.7.0",
+                "php-mock/php-mock-phpunit": "^2.15",
+                "phpunit/phpunit": "^12.5",
+                "vimeo/psalm": "^6.16"
+            },
+            "default-branch": true,
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "Waffle\\Commons\\Utils\\": "src/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Leslie Petrimaux",
+                    "email": "contact@waffle-commons.cloud"
+                }
+            ],
+            "description": "Stateless, pure-function helpers shared across the Waffle Commons ecosystem: no I/O, no per-process state, safe to use across FrankenPHP worker requests.",
+            "support": {
+                "issues": "https://github.com/waffle-commons/utils/issues",
+                "source": "https://github.com/waffle-commons/utils/tree/main"
+            },
+            "time": "2026-09-08T19:50:24+00:00"
         }
     ],
     "packages-dev": [
@@ -6206,7 +6256,8 @@
     "aliases": [],
     "minimum-stability": "stable",
     "stability-flags": {
-        "waffle-commons/contracts": 20
+        "waffle-commons/contracts": 20,
+        "waffle-commons/utils": 20
     },
     "prefer-stable": false,
     "prefer-lowest": false,
