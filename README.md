@@ -10,8 +10,8 @@
 Waffle OpenApi Component
 ==========================
 
-> **Release:** _unreleased_ &nbsp;|&nbsp; [`CHANGELOG.md`](./CHANGELOG.md)
-> **Status:** In development for `0.1.0-beta7` — roadmap `[API-01]` (RFC-016). Generation runs at build time (`openapi:generate`); nothing is added to the request hot path.
+> **Release:** `0.1.0-beta7` &nbsp;|&nbsp; [`CHANGELOG.md`](./CHANGELOG.md)
+> **Status:** First released in `0.1.0-beta7` — roadmap `[API-01]` (RFC-016). Generation runs at build time (`openapi:generate`); nothing is added to the request hot path.
 
 OpenAPI 3.1 document generation for the Waffle framework, built from #[Route] attributes and typed DTOs.
 
