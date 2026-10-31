@@ -10,6 +10,7 @@ use Waffle\Commons\Contracts\Console\Enum\ExitCode;
 use Waffle\Commons\OpenApi\Command\GenerateCommand;
 use Waffle\Commons\OpenApi\OpenApiGenerator;
 use WaffleTests\Commons\OpenApi\AbstractTestCase as TestCase;
+use WaffleTests\Commons\OpenApi\Fixture\Controller\MisdocumentedController;
 use WaffleTests\Commons\OpenApi\Fixture\Controller\OrderController;
 use WaffleTests\Commons\OpenApi\Fixture\Double\ArrayInput;
 use WaffleTests\Commons\OpenApi\Fixture\Double\BufferedOutput;
@@ -127,6 +128,19 @@ final class GenerateCommandTest extends TestCase
 
         static::assertSame(ExitCode::FAILURE->value, $code);
         static::assertStringStartsWith('OpenAPI generation failed: ', $output->err);
+        static::assertSame('', $output->out);
+    }
+
+    public function testReportsAResponseAttributeTheDocumentCannotCarry(): void
+    {
+        $output = new BufferedOutput();
+
+        $code = new GenerateCommand(new FakeRouter([
+            Routes::route(MisdocumentedController::class, 'badStatus', '/bad', ['GET'], 'bad'),
+        ]))->execute(new ArrayInput(['output' => '-']), $output);
+
+        static::assertSame(ExitCode::FAILURE->value, $code);
+        static::assertStringContainsString('600 is not an HTTP status', $output->err);
         static::assertSame('', $output->out);
     }
 

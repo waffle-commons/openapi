@@ -74,8 +74,62 @@ DTOs and enums are shared under `components/schemas`, named after their short cl
 name, dotted, when two classes share it). A DTO whose request and response shapes differ, and that the
 document uses on both sides, gets two components: `Name-Input` and `Name-Output`.
 
-Not yet: `#[OA\*]` description overrides and the development-only Swagger UI route (`[API-01]`
-follow-ups). Without them the document is valid but terse.
+## 🏷 Saying what a signature cannot: `#[OA\*]`
+
+The contracts' `Waffle\Commons\Contracts\OpenApi\Attribute` namespace adds descriptions, tags and
+responses. Without any of them the document is still valid, only terse.
+
+```php
+use Waffle\Commons\Contracts\OpenApi\Attribute as OA;
+
+#[OA\Operation(tags: ['users'])]               // on the class: defaults for every route
+final class UserController
+{
+    #[Route('/users/{id}')]
+    #[OA\Operation(summary: 'Fetch a user', description: 'CommonMark allowed.')]
+    #[OA\Response(200, 'The user.')]             // a status already documented: new description
+    #[OA\Response(404, 'No user has this id.')] // any other status: added
+    public function show(int $id): UserView { /* … */ }
+}
+
+#[Dto]
+final readonly class UserView
+{
+    public function __construct(
+        #[OA\Property(description: 'Public identifier.', example: 42)]
+        public int $id,
+    ) {}
+}
+```
+
+| Attribute | Where | What it does |
+| :--- | :--- | :--- |
+| `Operation` | method, or class for defaults | `summary`, `description`, `tags`, `deprecated`. The method's summary and description win, its tags replace the class's when it has any, and either level can mark an operation deprecated. |
+| `Response` (repeatable) | method | `status`, `description` and an optional `#[Dto]` body type. A status the signature already implies takes the new description (and body, given a type); any other status is added. |
+| `Property` | constructor parameter or property | `description` and `example` (written as JSON Schema's `examples`). The request side reads the parameter, the response side the property; a promoted parameter carries it on both. |
+
+A `Response` whose status is not between 100 and 599, or whose type is not a `#[Dto]` class, fails the
+generation with an `Exception\InvalidAttributeException` that names the method.
+
+## 📖 The development documentation route
+
+`Middleware\ApiDocsMiddleware` serves, during development, `GET /_docs` (a Swagger UI page) and
+`GET /_docs/openapi.json` (the document generated from the routes at that moment). Mount it **in debug
+mode only**, before the routing middleware: production refuses debug mode, so there both paths fall
+through to the router's 404. The skeleton does exactly that.
+
+```php
+use Waffle\Commons\OpenApi\Middleware\ApiDocsMiddleware;
+
+if ($debug) {
+    $stack->add(new ApiDocsMiddleware($router, $responseFactory, $streamFactory, 'Orders API', '1.4.0'));
+}
+```
+
+The page loads Swagger UI 5.33.3 from jsDelivr, both files pinned by their Subresource Integrity hashes,
+and sends its own `Content-Security-Policy`: scripts from jsDelivr plus the inline start-up script (by its
+hash), styles from jsDelivr plus the inline styles Swagger UI writes, images from the page and `data:`,
+requests to the page's own origin only. Swagger UI's online validator is off.
 
 ## 🧭 Architectural boundary (`mago guard`)
 

@@ -14,6 +14,7 @@ use stdClass;
 use Waffle\Commons\Contracts\Attribute\Dto;
 use Waffle\Commons\Contracts\Routing\MatchedRoute;
 use Waffle\Commons\OpenApi\Enum\Side;
+use Waffle\Commons\OpenApi\Exception\InvalidAttributeException;
 use Waffle\Commons\OpenApi\Schema\SchemaCatalog;
 use Waffle\Commons\Utils\Dto\Shape\DtoShapeReader;
 use Waffle\Commons\Utils\Exception\UnsupportedDtoShapeException;
@@ -48,6 +49,12 @@ use function strtolower;
  *   `array` a `200` JSON body; a `string` a `200` HTML page; `void` a `204`; any
  *   other type a bare `200`. A nullable return adds the `204`.
  *
+ * - **What a signature cannot say** comes from the contracts' `#[OA\*]`
+ *   attributes: `Operation` (summary, description, tags, deprecated) on the
+ *   method or, as defaults, on the controller class; `Response` rewrites a status
+ *   documented above or adds another; `Property` describes a DTO field (see
+ *   {@see SchemaCatalog}).
+ *
  * DTO and enum schemas are shared through `components/schemas` (see
  * {@see SchemaCatalog}). Without any attribute the document is valid, if terse:
  * it carries no descriptions beyond the status texts.
@@ -78,6 +85,7 @@ final readonly class OpenApiGenerator
      *
      * @throws ReflectionException          When a route names a controller method that does not exist.
      * @throws UnsupportedDtoShapeException When a DTO uses a construct the document cannot describe.
+     * @throws InvalidAttributeException    When an `#[OA\Response]` names no HTTP status or no `#[Dto]` class.
      */
     public function generate(array $routes, string $title = 'API', string $version = '1.0.0'): array
     {
@@ -94,6 +102,8 @@ final readonly class OpenApiGenerator
             if ($returned !== null) {
                 $responseRoots[] = $returned;
             }
+
+            $responseRoots = [...$responseRoots, ...AttributeReader::bodyTypes($method)];
         }
 
         $catalog = SchemaCatalog::build(
@@ -154,6 +164,7 @@ final readonly class OpenApiGenerator
 
     /**
      * @throws ReflectionException
+     * @throws InvalidAttributeException
      */
     private function operation(
         MatchedRoute $route,
@@ -162,7 +173,8 @@ final readonly class OpenApiGenerator
         SchemaCatalog $catalog,
     ): array {
         $method = new ReflectionMethod($route->className, $route->method);
-        $operation = ['operationId' => $operationId];
+        $operation = AttributeReader::operation($method, new ReflectionClass($route->className))
+        + ['operationId' => $operationId];
 
         $parameters = self::pathParameters($route->path, $method);
         if ($parameters !== []) {
@@ -177,7 +189,11 @@ final readonly class OpenApiGenerator
             ];
         }
 
-        $responses = self::responses($method->getReturnType(), $catalog);
+        $responses = AttributeReader::documentResponses(
+            self::responses($method->getReturnType(), $catalog),
+            $method,
+            $catalog,
+        );
         if ($httpMethod === 'HEAD') {
             // A response to HEAD carries the headers of a GET, never its body.
             foreach ($responses as $status => $response) {

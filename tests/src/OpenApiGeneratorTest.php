@@ -10,11 +10,16 @@ use Opis\JsonSchema\Errors\ErrorFormatter;
 use Opis\JsonSchema\ValidationResult;
 use PHPUnit\Framework\Attributes\CoversClass;
 use ReflectionException;
+use Waffle\Commons\OpenApi\AttributeReader;
+use Waffle\Commons\OpenApi\Exception\InvalidAttributeException;
 use Waffle\Commons\OpenApi\OpenApiGenerator;
 use Waffle\Commons\OpenApi\Schema\ComponentNames;
 use Waffle\Commons\OpenApi\Schema\SchemaCatalog;
 use WaffleTests\Commons\OpenApi\AbstractTestCase as TestCase;
+use WaffleTests\Commons\OpenApi\Fixture\Controller\DocumentedController;
+use WaffleTests\Commons\OpenApi\Fixture\Controller\MisdocumentedController;
 use WaffleTests\Commons\OpenApi\Fixture\Controller\OrderController;
+use WaffleTests\Commons\OpenApi\Fixture\NotADto;
 use WaffleTests\Commons\OpenApi\Fixture\Routes;
 
 use function array_keys;
@@ -28,6 +33,7 @@ use function str_replace;
 use function substr_count;
 
 #[CoversClass(OpenApiGenerator::class)]
+#[CoversClass(AttributeReader::class)]
 #[CoversClass(SchemaCatalog::class)]
 #[CoversClass(ComponentNames::class)]
 final class OpenApiGeneratorTest extends TestCase
@@ -285,6 +291,110 @@ final class OpenApiGeneratorTest extends TestCase
         $this->expectException(JsonException::class);
 
         $generator->encode($generator->generate([], "\xB1\x31"));
+    }
+
+    public function testOperationAttributesDescribeTheOperations(): void
+    {
+        $paths = self::at(self::decode($this->documentedJson()), 'paths');
+
+        $show = self::at($paths, '/users/{id}', 'get');
+        static::assertSame(['users'], $show['tags']);
+        static::assertSame('Fetch a user', $show['summary']);
+        static::assertSame('Users of the fixture API.', $show['description']);
+        static::assertArrayNotHasKey('deprecated', $show);
+
+        $create = self::at($paths, '/users', 'post');
+        static::assertSame(['admin'], $create['tags']);
+        static::assertSame('Create a user', $create['summary']);
+        static::assertSame('Answers the stored user.', $create['description']);
+        static::assertTrue($create['deprecated']);
+
+        $purge = self::at($paths, '/users', 'delete');
+        static::assertSame(['users'], $purge['tags']);
+        static::assertSame('Users of the fixture API.', $purge['description']);
+        static::assertArrayNotHasKey('summary', $purge);
+    }
+
+    public function testResponseAttributesRewriteADocumentedStatusAndAddOthers(): void
+    {
+        $paths = self::at(self::decode($this->documentedJson()), 'paths');
+
+        $show = self::at($paths, '/users/{id}', 'get', 'responses');
+        static::assertSame([200, 404], array_keys($show));
+        static::assertSame('The user.', self::at($show, '200')['description']);
+        static::assertSame(
+            ['$ref' => '#/components/schemas/UserView'],
+            self::at($show, '200', 'content', 'application/json')['schema'],
+        );
+        static::assertSame('No user has this id.', self::at($show, '404')['description']);
+        static::assertSame(
+            ['$ref' => '#/components/schemas/ProblemView'],
+            self::at($show, '404', 'content', 'application/json')['schema'],
+        );
+
+        $create = self::at($paths, '/users', 'post', 'responses');
+        static::assertSame([200, 422], array_keys($create));
+        static::assertSame('OK', self::at($create, '200')['description']);
+        static::assertSame(['description' => 'The input is invalid.'], self::at($create, '422'));
+    }
+
+    public function testPropertyAttributesDescribeTheFieldsOnBothSides(): void
+    {
+        $schemas = self::at(self::decode($this->documentedJson()), 'components', 'schemas');
+
+        $name = self::at($schemas, 'UserInput', 'properties', 'name');
+        static::assertSame('Display name.', $name['description']);
+        static::assertSame(['Ada'], $name['examples']);
+        static::assertArrayNotHasKey('description', self::at($schemas, 'UserInput', 'properties', 'email'));
+
+        $id = self::at($schemas, 'UserView', 'properties', 'id');
+        static::assertSame('Public identifier.', $id['description']);
+        static::assertSame([42], $id['examples']);
+        static::assertSame('Display name.', self::at($schemas, 'UserView', 'properties', 'name')['description']);
+    }
+
+    public function testTheDocumentedDocumentValidatesAgainstTheOfficialSchema(): void
+    {
+        $result = self::validate($this->documentedJson());
+
+        static::assertTrue($result->isValid(), self::errors($result));
+    }
+
+    public function testAResponseStatusOutsideHttpFailsTheGeneration(): void
+    {
+        $this->expectException(InvalidAttributeException::class);
+        $this->expectExceptionMessage('MisdocumentedController::badStatus(): 600 is not an HTTP status.');
+
+        new OpenApiGenerator()->generate([
+            Routes::route(MisdocumentedController::class, 'badStatus', '/bad', ['GET'], 'bad'),
+        ]);
+    }
+
+    public function testAResponseBodyThatIsNotADtoFailsTheGeneration(): void
+    {
+        $this->expectException(InvalidAttributeException::class);
+        $this->expectExceptionMessage(
+            'MisdocumentedController::badType(): ' . NotADto::class . ' is not a #[Dto] class.',
+        );
+
+        new OpenApiGenerator()->generate([
+            Routes::route(MisdocumentedController::class, 'badType', '/bad', ['GET'], 'bad'),
+        ]);
+    }
+
+    private function documentedJson(): string
+    {
+        $generator = new OpenApiGenerator();
+
+        return $generator->encode($generator->generate(
+            [
+                Routes::route(DocumentedController::class, 'show', '/users/{id:\\d+}', ['GET'], 'users_show'),
+                Routes::route(DocumentedController::class, 'create', '/users', ['POST'], 'users_create'),
+                Routes::route(DocumentedController::class, 'purge', '/users', ['DELETE'], 'users_purge'),
+            ],
+            'Documented API',
+            '1.0.0',
+        ));
     }
 
     private function json(): string

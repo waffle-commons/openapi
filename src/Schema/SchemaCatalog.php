@@ -7,6 +7,8 @@ namespace Waffle\Commons\OpenApi\Schema;
 use BackedEnum;
 use ReflectionException;
 use stdClass;
+use Waffle\Commons\Contracts\OpenApi\Attribute\Property;
+use Waffle\Commons\OpenApi\AttributeReader;
 use Waffle\Commons\OpenApi\Enum\Side;
 use Waffle\Commons\Utils\Dto\Shape\DtoShape;
 use Waffle\Commons\Utils\Dto\Shape\Enum\TypeKind;
@@ -22,7 +24,9 @@ use function ksort;
  * serializer hydrates it; a response body by its readable properties, as the
  * serializer writes it. Both come from the `utils` DtoShapeReader, so the
  * document and the serializer agree. {@see ComponentNames} decides which
- * components exist and what they are called.
+ * components exist and what they are called. An `#[OA\Property]` adds a field's
+ * description and example: the constructor parameter's on the request side, the
+ * property's on the response side.
  *
  * Built once per document and immutable: no state survives a generation.
  */
@@ -88,6 +92,8 @@ final readonly class SchemaCatalog
      * The component schemas, sorted by name.
      *
      * @return array<string, array>
+     *
+     * @throws ReflectionException When a DTO cannot be reflected for its `#[OA\Property]` attributes.
      */
     public function components(): array
     {
@@ -113,6 +119,8 @@ final readonly class SchemaCatalog
     /**
      * What a request may send: the constructor parameters, required when they
      * have no default and are not nullable.
+     *
+     * @throws ReflectionException
      */
     private function inputSchema(DtoShape $shape): array
     {
@@ -124,7 +132,10 @@ final readonly class SchemaCatalog
                 $property['default'] = $field->default instanceof BackedEnum ? $field->default->value : $field->default;
             }
 
-            $properties[$field->name] = $property;
+            $properties[$field->name] = self::documented($property, AttributeReader::inputProperty(
+                $shape->class,
+                $field->name,
+            ));
             if ($field->required) {
                 $required[] = $field->name;
             }
@@ -136,6 +147,8 @@ final readonly class SchemaCatalog
     /**
      * What a response carries: every readable property, always present
      * (`null` included); a computed one is read-only.
+     *
+     * @throws ReflectionException
      */
     private function outputSchema(DtoShape $shape): array
     {
@@ -147,11 +160,31 @@ final readonly class SchemaCatalog
                 $property['readOnly'] = true;
             }
 
-            $properties[$field->name] = $property;
+            $properties[$field->name] = self::documented($property, AttributeReader::outputProperty(
+                $shape->class,
+                $field->name,
+            ));
             $required[] = $field->name;
         }
 
         return self::object($properties, $required);
+    }
+
+    /**
+     * A field schema with what its `#[OA\Property]` says: a description, and an
+     * example written as JSON Schema's `examples`.
+     */
+    private static function documented(array $schema, ?Property $property): array
+    {
+        if ($property?->description !== null) {
+            $schema['description'] = $property->description;
+        }
+
+        if ($property?->example !== null) {
+            $schema['examples'] = [$property->example];
+        }
+
+        return $schema;
     }
 
     /**

@@ -32,7 +32,8 @@
         "php-mock/php-mock-phpunit": "^2.15",
         "cyclonedx/cyclonedx-php-composer": "^6.2",
         "igor-php/igor-php": "^0.9.7",
-        "opis/json-schema": "^2.6"
+        "opis/json-schema": "^2.6",
+        "nyholm/psr7": "^1.8"
     },
     "scripts": {
         "formatter": "vendor/bin/mago fmt",

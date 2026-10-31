@@ -11,6 +11,7 @@ use Waffle\Commons\Contracts\Console\Enum\ExitCode;
 use Waffle\Commons\Contracts\Console\InputInterface;
 use Waffle\Commons\Contracts\Console\OutputInterface;
 use Waffle\Commons\Contracts\Routing\RouterInterface;
+use Waffle\Commons\OpenApi\Exception\InvalidAttributeException;
 use Waffle\Commons\OpenApi\OpenApiGenerator;
 use Waffle\Commons\Utils\Exception\UnsupportedDtoShapeException;
 
@@ -70,7 +71,9 @@ final readonly class GenerateCommand implements CommandInterface
         return (
             "Reads every #[Route] from the router and the typed signatures of their\n"
             . "controllers, and writes an OpenAPI 3.1 document: paths, path parameters,\n"
-            . "#[Dto] request and response bodies, and their schemas.\n\n"
+            . "#[Dto] request and response bodies, and their schemas. The #[OA\\Operation],\n"
+            . "#[OA\\Response] and #[OA\\Property] attributes add descriptions, tags and\n"
+            . "responses a signature cannot express.\n\n"
             . "  --output=<path>        Where to write it (default: openapi.json); '-' for the standard output.\n"
             . "  --title=<title>        The API title (default: API).\n"
             . '  --api-version=<ver>    The API version (default: 1.0.0).'
@@ -93,7 +96,7 @@ final readonly class GenerateCommand implements CommandInterface
         try {
             $document = $this->generator->generate($this->router->getRoutes(), $title, $version);
             $json = $this->generator->encode($document);
-        } catch (ReflectionException|UnsupportedDtoShapeException|JsonException $exception) {
+        } catch (ReflectionException|UnsupportedDtoShapeException|InvalidAttributeException|JsonException $exception) {
             $output->writeError(sprintf('OpenAPI generation failed: %s', $exception->getMessage()));
 
             return ExitCode::FAILURE->value;

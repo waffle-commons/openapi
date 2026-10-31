@@ -25,7 +25,18 @@ Released in lockstep with the Waffle Commons umbrella tag.
     `Console\CommandInterface` registered in `bin/waffle`; it writes the document atomically.
   - The tests validate the generated document against the official OpenAPI 3.1 schema (iteration
     2026-08-03, stored verbatim in `tests/fixtures/` with its notice) and pin it with a golden file.
+  - `AttributeReader` — reads the contracts' `#[OA\Operation]` (summary, description, tags, deprecated;
+    class-level defaults), `#[OA\Response]` (rewrites a documented status, adds any other, optional
+    `#[Dto]` body) and `#[OA\Property]` (a field's `description` and `examples`, request side from the
+    constructor parameter, response side from the property). A response status outside 100–599 or a body
+    type that is not a `#[Dto]` raises `Exception\InvalidAttributeException`, which `openapi:generate`
+    reports as a failed generation.
+  - `Middleware\ApiDocsMiddleware` — the development documentation: `GET /_docs` answers a Swagger UI
+    5.33.3 page (jsDelivr, both files pinned by Subresource Integrity, its own Content-Security-Policy that
+    allows the one inline start-up script by its hash), `GET /_docs/openapi.json` the document generated
+    from the routes at that moment; every other request goes down the pipeline. Mounted in debug mode
+    only, so production answers 404 there.
 
 ### Changed
 - Requires `waffle-commons/utils` (the DTO-shape reader); the `mago guard` perimeter permits
-  `Waffle\Commons\Utils\**`. `opis/json-schema` ^2.6 is a development dependency.
+  `Waffle\Commons\Utils\**`. `opis/json-schema` ^2.6 and `nyholm/psr7` ^1.8 are development dependencies.
