@@ -35,7 +35,7 @@ Released in lockstep with the Waffle Commons umbrella tag.
     5.33.3 page (jsDelivr, both files pinned by Subresource Integrity, its own Content-Security-Policy that
     allows the one inline start-up script by its hash), `GET /_docs/openapi.json` the document generated
     from the routes at that moment; every other request goes down the pipeline. Mounted in debug mode
-    only, so production answers 404 there.
+    only, so in production both paths fall through to the router.
 
 ### Changed
 - Requires `waffle-commons/utils` (the DTO-shape reader); the `mago guard` perimeter permits

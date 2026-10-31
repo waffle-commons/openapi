@@ -116,7 +116,8 @@ generation with an `Exception\InvalidAttributeException` that names the method.
 `Middleware\ApiDocsMiddleware` serves, during development, `GET /_docs` (a Swagger UI page) and
 `GET /_docs/openapi.json` (the document generated from the routes at that moment). Mount it **in debug
 mode only**, before the routing middleware: production refuses debug mode, so there both paths fall
-through to the router's 404. The skeleton does exactly that.
+through to the router, a 404 unless one of the application's routes matches them. The skeleton does
+exactly that.
 
 ```php
 use Waffle\Commons\OpenApi\Middleware\ApiDocsMiddleware;

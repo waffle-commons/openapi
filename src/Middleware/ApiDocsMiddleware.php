@@ -30,7 +30,8 @@ use function sprintf;
  *
  * Development only, and fail-closed: an application mounts it in debug mode,
  * which production refuses, so in production both paths fall through to the
- * router's 404. The document describes every route, the ones a voter guards
+ * router: a 404, unless an application route matches them (the skeleton's
+ * demonstration catch-all does). The document describes every route, the ones a voter guards
  * included; it is meant for the developer's machine.
  *
  * The page loads Swagger UI from jsDelivr, both files pinned by their Subresource
