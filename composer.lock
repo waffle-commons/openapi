@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "30f55528b7cb33ef16dded1fb56eec51",
+    "content-hash": "9e0613ee465148695b7f0dc6fa9cdca7",
     "packages": [
         {
             "name": "psr/cache",
@@ -6416,7 +6416,7 @@
     "prefer-stable": false,
     "prefer-lowest": false,
     "platform": {
-        "php": "^8.5"
+        "php": "^8.5.12"
     },
     "platform-dev": {},
     "plugin-api-version": "2.9.0"
